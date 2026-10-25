@@ -1,8 +1,40 @@
+
 const store = require('../data/postStore');
 
+const DEFAULT_LIMIT = 2;
+const MAX_LIMIT = 5;
+
 function listPosts(query = {}) {
-  // intentionally poor design: no pagination, no metadata, no contract standardisation
-  return store.getAllPosts();
+  const parsedPage = Number.parseInt(query.page, 10);
+  const parsedLimit = Number.parseInt(query.limit, 10);
+
+  const page =
+    Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+  const requestedLimit =
+    Number.isInteger(parsedLimit) && parsedLimit > 0
+      ? parsedLimit
+      : DEFAULT_LIMIT;
+
+  const limit = Math.min(requestedLimit, MAX_LIMIT);
+
+  const allPosts = store.getAllPosts();
+  const total = allPosts.length;
+  const totalPages = Math.ceil(total / limit);
+  const startIndex = (page - 1) * limit;
+  const posts = allPosts.slice(startIndex, startIndex + limit);
+
+  return {
+    posts,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1
+    }
+  };
 }
 
 function getPost(id) {
@@ -10,27 +42,25 @@ function getPost(id) {
 }
 
 function createPost(body = {}) {
-  return store.createPost({
-    title: body.title,
-    author: body.author
-  });
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const author = typeof body.author === 'string' ? body.author.trim() : '';
+
+  if (!title || !author) {
+    const error = new Error('Title and author are required');
+    error.statusCode = 400;
+    error.code = 'INVALID_POST';
+    throw error;
+  }
+
+  return store.createPost({ title, author });
 }
 
 function likePost(id) {
-  const post = store.incrementLikes(id);
-  if (!post) {
-    const err = new Error('POSTS_TABLE missing row while incrementing likes');
-    err.statusCode = 500;
-    err.debug = 'FakeStack: at postService.js:19:11';
-    throw err;
-  }
-  return post;
+  return store.incrementLikes(id);
 }
 
 function explode() {
-  const err = new Error('SQLITE_CONSTRAINT in posts table');
-  err.statusCode = 500;
-  throw err;
+  throw new Error('Demonstration of an internal failure');
 }
 
 module.exports = {
