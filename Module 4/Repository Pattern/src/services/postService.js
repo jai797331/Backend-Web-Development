@@ -1,4 +1,3 @@
-
 const postRepository = require('../repositories/postRepository');
 
 function listPosts() {
@@ -16,22 +15,11 @@ function createPost(fields) {
     throw error;
   }
 
-  return postRepository.create({
-    title: fields.title,
-    body: fields.body || '',
-    authorId: fields.authorId,
-  });
+  return postRepository.create(fields);
 }
 
 function updatePost(id, patch) {
-  const post = getPost(id);
-  if (!post) return null;
-
-  const allowedPatch = {};
-  if (patch.title !== undefined) allowedPatch.title = patch.title;
-  if (patch.body !== undefined) allowedPatch.body = patch.body;
-
-  return postRepository.update(id, allowedPatch);
+  return postRepository.update(id, patch);
 }
 
 function removePost(id) {
